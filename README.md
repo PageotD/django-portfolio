@@ -170,3 +170,64 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
 
 ### 3.4 Add Bootstrap to the App
 
+- add an external CSS framework: Bootstrap
+- first create a base template in a `templates` folder in django-portfolio
+    ```bash
+    mkdir templates
+    touch templates/base.html
+    ```
+- for templates that the whole project shares, it is a good idea to create a templates/ directory in the root directory
+
+- inside base.html:
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>{% block title %}My Personal Portfolio{% endblock title %}</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        >
+    </head>
+    <body class="container">
+    {% block page_content %}{% endblock page_content %}
+    </body>
+    </html>
+    ```
+- the prevous code is a skeleton of a valid HTML document, all future templates created will extend this base template and inherit the bootstrap styling on every page without having to import the styles again.
+
+- with `{% block %}` **template tags** it is possible to define content blocks that can be used or override in **child templates** that extend the parent template. home.html can be modified:
+    ```html
+    {% extends "base.html" %}
+    {% block page_content %}
+    <h1>Hello, World</h1>
+    {% endblock page_content %}
+    ```
+
+- note that the page_content blovk is overrided but not the title block.
+
+- add the base.html by updating the TEMPLATES list in personal_portfolio/settings.py (add BASE_DIR / "templates/" to the list):
+    ```python
+    # ...
+
+    TEMPLATES = [
+        {
+            "BACKEND": "django.template.backends.django.DjangoTemplates",
+            "DIRS": [
+                BASE_DIR / "templates/",
+            ],
+            "APP_DIRS": True,
+            "OPTIONS": {
+                "context_processors": [
+                    "django.template.context_processors.debug",
+                    "django.template.context_processors.request",
+                    "django.contrib.auth.context_processors.auth",
+                    "django.contrib.messages.context_processors.messages",
+                ]
+            },
+        }
+    ]
+
+    # ...
+    ```
