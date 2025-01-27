@@ -11,6 +11,13 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
     - [3.1 Create the `Pages` App](#31-create-the-pages-app)
     - [3.2 Create a View](#32-create-a-view)
     - [3.3 Add a Route](#33-add-a-route)
+- [4. Add the Projects App](#4-add-the-projects-app)
+    - [4.1 Create the `Projects` App](#41-create-the-projects-app)
+    - [4.2 Define a Model](#42-define-a-model)
+    - [4.3 Dive into Django Shell](#43-dive-into-django-shell)
+    - [4.4 Create the View](#44-create-the-views)
+    - [4.5 Craft the Templates](#45-craft-the-templates)
+    - [4.6 Add the Routes](#46-add-the-routes)
 
 ## 1. Understand the structure of a Django Website
 
@@ -231,3 +238,214 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
 
     # ...
     ```
+
+## 4. Add the Projects App
+
+### 4.1 Create the `Projects` App
+
+- to create the `Projects` app, run the following command:
+    ```bash
+    python manage.py startapp projects
+    ```
+- this will create a `projects` directory with several files (same as Pages)
+
+- add the app in `personal_portfolio/settings.py`:
+    ```python
+    # ...
+
+    INSTALLED_APPS = [
+        "projects.apps.ProjectsConfig",
+        "pages.apps.PagesConfig",
+        "django.contrib.admin",
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+        "django.contrib.staticfiles",
+    ]
+
+    # ...
+    ```
+
+### 4.2 Define a Model
+
+- to store data to display on a website, a database is required; Django has built-in support for databases with **object-relational mapping (ORM)**.
+- an ORM is a program that allows to create classes that corespond to database tables; class attributes correspond to columns, and instances of the classes correspond to rows in the database.
+- the classes that represent database tables are reffered to as **models**; in django they live in the models.py module of each Django app.
+
+- the model to create is as follows:
+    | Name | Description |
+    | --- | --- |
+    | title | A short string field to hold the name of the project |
+    | description | A larger string field to hold a longer piece of text |
+    | technology | A string field, but its contents will be limited to a select number of choices |
+
+- to create the Project model, a new class is created in models.py:
+    ```python
+    from django.db import models
+
+    class Project(models.Model):
+        title = models.CharField(max_length=200)
+        description = models.TextField()
+        technology = models.CharField(max_length=20)
+    ```
+
+- CharField is a built-in model field type which works for short strings
+- TextField is a built-in model field type which works for longer strings
+- there is many other model field types: https://docs.djangoproject.com/en/5.1/ref/models/fields/#field-types
+
+- by default, the Django ORM creates databases in SQLite, but other databases can be used as well, such as PostgreSQL or MySQL.
+
+- to start the process of creating a database, a **migration** must be created
+- a migration is a file containing a `Migration` class with rules that tell Django what changes need to be made to the database
+
+- to create a migration, run the following command in django-portfolio/ :
+    ```bash
+    python manage.py makemigrations
+    ```
+    ```console
+    Migrations for 'projects':
+        projects/migrations/0001_initial.py
+        - Create model Project
+    ```
+- a migrations/0001_initial.py file is created in the projects directory
+- now that the migration is created, it can be applied to the database:
+    ```bash
+    python manage.py migrate projects
+    ```
+    ```console
+    Operations to perform:
+        Apply all migrations: projects
+    Running migrations:
+        Applying projects.0001_initial... OK
+    ```
+
+- when running both the makemigrations and migrate commands, projects is added to the commands; this tell django to only look at models and migrations in projects app.
+
+- if running both the makemigrations and migrate commands without the projects flag, then all the migrations for all the default models in the Django app will be created and applied
+
+- after the migrations a sqlite database is created in the personal_portfolio directory (db.sqlite3)
+
+### 4.3 Dive Into the Django Shell
+
+- to add new entries to Projects database table, an instance of the Project class must be created using the Django shell
+- the Django shell is similar to the Python shell but allows to access the database and create entries:
+    ```bash
+    python manage.py shell
+    ```
+- then import the Project model
+    ```python
+    >>> from projects.models import Project
+    ```
+
+- then create an instance of the Project class
+    ```python
+    >>> first_project = Project(
+    ...     title="My First Project",
+    ...     description="A web development project.",
+    ...     technology="Django",
+    ... )
+    >>> first_project.save()
+    ```
+- save() method creates a new entry in the project table and save it to the database
+- create two additional projects in the database
+    ```python
+    >>> second_project = Project(
+    ...     title="My Second Project",
+    ...     description="Another web development project.",
+    ...     technology="Flask",
+    ... )
+    >>> second_project.save()
+    >>> third_project = Project(
+    ...     title="My Third Project",
+    ...     description="A final development project.",
+    ...     technology="Django",
+    ... )
+    >>> third_project.save()
+    >>> exit()
+    ```
+
+### 4.4 Create the Views
+
+- create view functions to send the data from the database to the templates to display them on the portfolio site.
+    - an index view that shows a snippett of information about each project
+    - a detail view that shows more information on a particular topic
+
+- both views will be added to the views.py file in the projects app directory
+    ```python
+    from django.shortcuts import render
+    from projects.models import Project
+
+    def project_index(request):
+        projects = Project.objects.all()
+        context = {
+            "projects": projects,
+        }
+        return render(request, "projects/project_index.html", context)
+    ```
+- Project.objects.all() returns a list of all the Project instances in the database; it is a query to the database. The return object is a **QuerySet** object.
+- the context dictionary has only one entry here, to which the QuerySet is assigned
+- any entries in the context dictionary are available in the template, as long as the context is passed to render()
+
+- create a project_detail view function in vews.py; this function will have primary key of the project that's being viewed as an additional argument:
+    ```python
+    def project_detail(request, pk):
+        project = Project.objects.get(pk=pk)
+        context = {
+            "project": project,
+        }
+        return render(request, "projects/project_detail.html", context)
+    ```
+- this function performs a query to the database to get the project that has the primary key that is passed to the function as an argument
+
+### 4.5 Craft the Templates
+
+- create the templates in projects/templates/projects
+    ```bash
+    mkdir -p projects/templates/projects
+    touch projects/templates/projects/project_index.html
+    touch projects/templates/projects/project_detail.html
+    ```
+
+- for project_index.html Bootstrap cards will be created, with each card displaying details of the project.
+    ```html
+    {% extends "base.html" %}
+
+    {% block page_content %}
+    <h1>Projects</h1>
+    <div class="row">
+        {% for project in projects %}
+        <div class="col-md-4">
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h5 class="card-title">{{ project.title }}</h5>
+                    <p class="card-text">{{ project.description }}</p>
+                    <a href="{% url 'project_detail' project.pk %}" class="btn btn-primary">
+                        Read more
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endblock page_content %}
+    ```
+- create project_detail.html
+    ```html
+    {% extends "base.html" %}
+
+    {% block page_content %}
+    <h1>{{ project.title }}</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <h5>About the project:</h5>
+            <p>{{ project.description }}</p>
+            <br>
+            <h5>Technology used:</h5>
+            <p>{{ project.technology }}</p>
+        </div>
+    </div>
+    {% endblock page_content %}
+    ```
+
+### 4.6 Add the Routes
