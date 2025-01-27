@@ -8,6 +8,9 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
     - [2.1 Setup the Development Environment](#21-setup-the-development-environment)
     - [2.2 Start the Django Project](#22-start-the-django-project)
 - [3. Add the Pages App](#3-add-the-pages-app)
+    - [3.1 Create the `Pages` App](#31-create-the-pages-app)
+    - [3.2 Create a View](#32-create-a-view)
+    - [3.3 Add a Route](#33-add-a-route)
 
 ## 1. Understand the structure of a Django Website
 
@@ -75,3 +78,95 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
     ```
 
 ## 3. Add the Pages App
+
+### 3.1 Create the `Pages` App
+
+- to create the `Pages` app, run the following command:
+    ```bash
+    python manage.py startapp pages
+    ```
+
+- this will create a `pages` directory with several files:
+    - `__init__.py` tells python to treat the directory as a Python packages
+    - `admin.py` contains settings for the django admin pages
+    - `apps.py` contains settings for the `pages` app
+    - `models.py` contains a series of classes that Django's ORM converts to database tables
+    - `tests.py` contains test classes
+    - `views.py` contains functions and classes that handle what data is displayed in the HTML Templates
+
+- to install the app in the project, in `django-portfolio/personal_portfolio/settings.py`, add `pages.apps.PagesConfig`:
+    ```python
+    # ...
+
+    INSTALLED_APPS = [
+        "pages.apps.PagesConfig",
+        "django.contrib.admin",
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "django.contrib.sessions",
+        "django.contrib.messages",
+        "django.contrib.staticfiles",
+    ]
+
+    # ...
+    ```
+
+### 3.2 Create a View
+
+- a view in Django is a collection of functions or classes inside the `views.py` file in an app's directory.
+- each function or class handles the logic that the app processes each time the user visits a different URL.
+
+- add the following code to `view.py`in the `pages` directory:
+    ```python
+    from django.shortcuts import render
+
+    # Create your views here.
+    def home(request):
+        return render(request, "pages/home.html", {})
+    ```
+- the render function looks for HTML templates inside a directory called `templates`.
+
+- since templates of different apps can have the same names, it s a good practice to add a subdirectory with the app's name inside the `templates` directory.
+
+- create a templates directory and a pages/ subdirectory in the pages/ app directory
+    ```bash
+    mkdir -p templates/pages
+    ```
+
+- create a home.html file in the templates/pages/ subdirectory:
+    ```html
+    <h1>Hello, World</h1>
+    ```
+
+### 3.3 Add a Route
+
+- `personal_portfolio` contains a file names `urls.py` in which a url configuration (route) can be added
+    ```python
+    from django.contrib import admin
+    from django.urls import path, include
+
+    urlpatterns = [
+        path("admin/", admin.site.urls),
+        path("", include("pages.urls")),
+    ]
+    ```
+
+- now the `pages.url` is needed, create the pages/urls.py file:
+    ```python
+    from django.urls import path
+
+    from . import views
+
+    urlpatterns = [
+        path("", views.home, name="home"),
+    ]
+    ```
+- this file contains a list of URL patterns that correspond to the various view functions (only home for now)
+
+- run the dev server again and visit the homepage at http://127.0.0.1:8000
+    ```bash
+    python manage.py runserver  # starts the development server at http://127.0.0.1:8000
+    ```
+
+### 3.4 Add Bootstrap to the App
+
