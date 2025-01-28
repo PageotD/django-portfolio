@@ -18,6 +18,8 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
     - [4.4 Create the View](#44-create-the-views)
     - [4.5 Craft the Templates](#45-craft-the-templates)
     - [4.6 Add the Routes](#46-add-the-routes)
+    - [4.7 Leverage the Django Admin Site](#47-leverage-the-django-admin-site)
+    - [4.8 Upload Images](#48-upload-images)
 
 ## 1. Understand the structure of a Django Website
 
@@ -449,3 +451,204 @@ Based on the [Real Python tutorial](https://realpython.com/get-started-with-djan
     ```
 
 ### 4.6 Add the Routes
+
+- create a projects/urls.py file in the projects app directory to hold the configuration
+    ```python
+    from django.urls import path
+    from . import views
+
+    urlpatterns = [
+        path("", views.project_index, name="project_index"),
+        path("<int:pk>/", views.project_detail, name="project_detail"),
+    ]
+    ```
+- to connect to the detail view, url needs to include the primary key of the project as an argument
+- the pk value in the URL is passed to the project_detail view function as an argument, so there is a need to dynamically generate theses URLs depending on which project to view using the <int:pk>/ pattern
+
+- this notation tells Django that the value passed in the URL is an integer, and its variable name is pk.
+
+- to hook theses URLs up to the main Django project's URL, in personnal_portfolio/urls.py add the following:
+    ```python
+    path("projects/", include("projects.urls")),
+    ```
+    ```python
+    from django.contrib import admin
+    from django.urls import path, include
+
+    urlpatterns = [
+        path("admin/", admin.site.urls),
+        path("", include("personal_portfolio.urls")),
+        path("projects/", include("projects.urls")),
+    ]
+    ```
+
+### 4.7 Leverage the Django Admin Site
+
+- Django reminds you that there were some unapplioed migratio ns when running the Django server
+- apply the already existing migrations:
+    ```bash
+    $ python manage.py migrate
+
+    Operations to perform:
+        Apply all migrations: admin, auth, contenttypes, projects, sessions
+    Running migrations:
+        Applying contenttypes.0001_initial... OK
+        Applying auth.0001_initial... OK
+        Applying admin.0001_initial... OK
+        Applying admin.0002_logentry_remove_auto_add... OK
+        Applying admin.0003_logentry_add_action_flag_choices... OK
+        Applying contenttypes.0002_remove_content_type_name... OK
+        Applying auth.0002_alter_permission_name_max_length... OK
+        Applying auth.0003_alter_user_email_max_length... OK
+        Applying auth.0004_alter_user_username_opts... OK
+        Applying auth.0005_alter_user_last_login_null... OK
+        Applying auth.0006_require_contenttypes_0002... OK
+        Applying auth.0007_alter_validators_add_error_messages... OK
+        Applying auth.0008_alter_user_username_max_length... OK
+        Applying auth.0009_alter_user_last_name_max_length... OK
+        Applying auth.0010_alter_group_name_max_length... OK
+        Applying auth.0011_update_proxy_permissions... OK
+        Applying auth.0012_alter_user_first_name_max_length... OK
+        Applying sessions.0001_initial... OK
+    ```
+- these are the features that Django already comes packed with. For example the authorization of users and the Django Admin Site.
+
+- to access the Django Admin site, you must create an admin account for yourself first
+    ```bash
+    $ python manage.py createsuperuser
+    Username (leave blank to use 'root'): admin
+    Email address: admin@example.com
+    Password: RealPyth0n
+    Password (again): RealPyth0n
+    Superuser created successfully.
+    ```
+- Start the Django development server again, visit http://localhost:8000/admin, and log in with your credentials
+
+- This is your very own admin area! With just a few adjustments, it gives you the ability to manage your portfolio projects from the comfort of your browser window instead of the Django shell.
+
+- To access your Project model in the Django admin site, you need to register the model first. Open the admin.py file of your projects app and add the code below:
+    ```python
+    from django.contrib import admin
+    from projects.models import Project
+
+    class ProjectAdmin(admin.ModelAdmin):
+        pass
+
+    admin.site.register(Project, ProjectAdmin)
+    ```
+- When you visit http://localhost:8000/admin again, you can spot that your projects are displayed on the admin site.
+
+### 4.8 Upload Images
+
+- It’s a good idea to promote your projects with images to grab the attention of your visitors. To do so, you’ll add a new field to the Project model and upload images in the Django admin site.
+
+- Start by opening projects/models.py and adding an image field to it:
+    ```python
+    from django.db import models
+
+    class Project(models.Model):
+        title = models.CharField(max_length=100)
+        description = models.TextField()
+        technology = models.CharField(max_length=20)
+        image = models.FileField(upload_to="project_images/", blank=True)
+    ```
+
+- FileField with a subfolder named project_images/. That’s where Django should store the images when you upload them.
+
+- Django constructs the path to your upload folder using the MEDIA_ROOT setting and the upload_to value. To collect all the images in an uploads/ folder and serve them with a media/ URL, add these two lines to personal_portfolio/settings.py:
+    ```python
+    # ...
+
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+    ```
+
+- The MEDIA_ROOT setting defines the folder that will store the media files in your file system. MEDIA_URL is the user-facing URL for the media folder that you present to visitors.
+
+- To successfully serve media files, you also need to register the static routes to your media files in urls.py inside personal_portfolio/:
+    ```python
+    from django.contrib import admin
+    from django.urls import path, include
+    from django.conf import settings
+    from django.conf.urls.static import static
+
+    urlpatterns = [
+        path("admin/", admin.site.urls),
+        path("", include("pages.urls")),
+        path("projects/", include("projects.urls")),
+    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    ```
+
+- Since you made some changes to your Django model, you must create a new migration and then migrate the changes:
+    ```bash
+    (venv) $ python manage.py makemigrations projects
+    Migrations for 'projects':
+    projects/migrations/0002_project_image.py
+        - Add field image to project
+
+    (venv) $ python manage.py migrate projects
+    Operations to perform:
+    Apply all migrations: projects
+    Running migrations:
+    Applying projects.0002_project_image... OK
+    ```
+- Visit http://localhost:8000/admin and go to Projects. When you click on a project, you’ll see the new Image field and the option to choose a file
+
+- Once all your projects contain images, you can go ahead and add them to your templates. Start with projects/templates/projects/project_index.html:
+    ```html
+    {% extends "base.html" %}
+
+    {% block page_content %}
+    <h1>Projects</h1>
+    <div class="row">
+    {% for project in projects %}
+        <div class="col-md-4">
+            <div class="card mb-2">
+                {% if project.image %}
+                    <img class="card-img-top" src="{{ project.image.url }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ project.title }}</h5>
+                    <p class="card-text">{{ project.description }}</p>
+                    <a href="{% url 'project_detail' project.pk %}"
+                    class="btn btn-primary">
+                        Read More
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endblock %}
+    ```
+
+- Finally, you can add the image to the project_detail.html template. Just like before, you’ll wrap the image tag in an if condition:
+    ```html
+    {% extends "base.html" %}
+
+    {% block page_content %}
+    <h1>{{ project.title }}</h1>
+    <div class="row">
+        <div class="col-md-8">
+            {% if project.image %}
+                <img src="{{ project.image.url }}" width="100%">
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <h5>About the project:</h5>
+            <p>{{ project.description }}</p>
+            <br>
+            <h5>Technology used:</h5>
+            <p>{{ project.technology }}</p>
+        </div>
+    </div>
+    {% endblock page_content %}
+    ```
+
+## Conclusion
+- Learned about the advantages of using Django
+- Investigated the architecture of a Django site
+- Set up a new Django project with multiple apps
+- Built models and views
+- Created and connected Django templates
+- Uploaded images into your Django site
